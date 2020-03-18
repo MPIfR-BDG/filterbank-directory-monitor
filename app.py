@@ -1,3 +1,4 @@
+import io
 import redis
 import dash
 import dash_daq as daq
@@ -9,16 +10,14 @@ import numpy as np
 
 external_stylesheets = []
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-client = redis.StrictRedis("redis")
+client = redis.StrictRedis("apsuse-monitor-redis")
 
 # from redis client:
 # filterbank-directory-monitor:directory /TEST/
 # filterbank-directory-monitor:coherent:file arse.fil
-# filterbank-directory-monitor:coherent:bandpass [1,2,3]
-# filterbank-directory-monitor:coherent:timeseries [2,3,4]
+# filterbank-directory-monitor:coherent:bandpass [] #packed numpy array
 # filterbank-directory-monitor:incoherent:file other_arse.fil
-# filterbank-directory-monitor:incoherent:bandpass [2,2,2]
-# filterbank-directory-monitor:incoherent:timeseries [4,4,4]
+# filterbank-directory-monitor:incoherent:bandpass [] #packed numpy array
 
 colors = {
     'background': '#212124',  # To match Grafana background
@@ -26,8 +25,26 @@ colors = {
 }
 
 app.layout = html.Div(children=[
+    html.H4(id='directory-label', children="Current directory: ", style= {
+        'color': '#CCCCCC',
+        'margin-bottom': "0px",
+        'margin-left': "10px",
+        'padding-top': "10px"
+        }),
+    html.H4(id='cb-file-label', children="CB file: ", style= {
+        'color': '#CCCCCC',
+        'margin-bottom': "0px",
+        'margin-left': "10px",
+        'padding-top': "0px"
+        }),
+    html.H4(id='ib-file-label', children="IB file: ", style= {
+        'color': '#CCCCCC',
+        'margin-bottom': "0px",
+        'margin-left': "10px",
+        'padding-top': "0px"
+        }),
     dcc.Graph(
-        id='example-graph',
+        id='bandpass-graph',
         figure={
             'data': [
                 {'x': [0], 'y': [0], 'type': 'line', 'name': 'Coherent Beam'},
@@ -35,6 +52,12 @@ app.layout = html.Div(children=[
             ],
             'layout': {
                 'title': 'Bandpass Monitor',
+                'xaxis': {
+                    'title': 'Frequency (MHz)'
+                },
+                'yaxis': {
+                    'title': 'Power (Arbitrary)'
+                },
                 'transition': {
                     'duration': 500,
                     'easing': 'cubic-in-out'
@@ -51,7 +74,7 @@ app.layout = html.Div(children=[
                 }
 
             }
-        }
+        },
     ),
     dcc.Interval(
         id='interval-component',
@@ -72,20 +95,50 @@ app.layout = html.Div(children=[
 ], style=colors)
 
 
+def upack_numpy_array(packed):
+    """
+    Unpack a numpy array from a string
+
+    :param      packed:  Numpy array that has been packed as
+                         [('frequency', 'float32', ), ('power', 'float32')]
+    :type       packed:  { type_description }
+    """
+    return np.frombuffer(packed, dtype=[
+        ('frequency', 'float32', ), ('power', 'float32')])
+
+
 @app.callback(
-    Output(component_id='example-graph', component_property='figure'),
+    [Output(component_id='bandpass-graph', component_property='figure'),
+     Output(component_id='directory-label', component_property='children'),
+     Output(component_id='cb-file-label', component_property='children'),
+     Output(component_id='ib-file-label', component_property='children')],
     [Input('interval-component', 'n_intervals')],
-    [State('example-graph', 'figure'),
+    [State('bandpass-graph', 'figure'),
      State('hold-toggle', 'value')])
 def update_plot(n_clicks, figure, hold):
     if hold:
         raise PreventUpdate
     for line in figure['data']:
-        line["x"] = np.arange(10)
-        line["y"] = np.random.randint(0, 100, 10)
+        if line["name"] == 'Coherent Beam':
+            beam = upack_numpy_array(
+                client.get("filterbank-directory-monitor:coherent:bandpass"))
+        elif line["name"] == 'Incoherent Beam':
+            beam = upack_numpy_array(
+                client.get("filterbank-directory-monitor:incoherent:bandpass"))
+        else:
+            print("Unknown data set: '{}'".fomat(line["name"]))
+        line["x"] = beam["frequency"]/1e6
+        line["y"] = beam["power"]
     figure["layout"]["uirevision"] = True
-    print(figure)
-    return figure
+    # I would like to update the figure title
+    # here but it seems to be bugged out
+    dir_label = "Current directory:    {}".format(
+        client.get("filterbank-directory-monitor:directory").decode())
+    cb_file = "CB file:    {}".format(
+        client.get("filterbank-directory-monitor:coherent:file").decode())
+    ib_file = "CB file:    {}".format(
+        client.get("filterbank-directory-monitor:incoherent:file").decode())
+    return figure, dir_label, cb_file, ib_file
 
 
 if __name__ == '__main__':
