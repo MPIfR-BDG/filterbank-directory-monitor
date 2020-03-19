@@ -1,4 +1,3 @@
-import io
 import redis
 import dash
 import dash_daq as daq
@@ -7,6 +6,8 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import numpy as np
+
+NAMESPACE = "filterbank-directory-monitor"
 
 external_stylesheets = []
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -78,17 +79,18 @@ app.layout = html.Div(children=[
     ),
     dcc.Interval(
         id='interval-component',
-        interval=1*1000,
+        interval=10*1000,
         n_intervals=0
     ),
-    daq.ToggleSwitch(id='hold-toggle', value=False, size=50,
+    daq.ToggleSwitch(
+        id='hold-toggle', value=False, size=50,
         label={
-        "label": "Prevent updates",
-        "style": {
-            "color": colors['text'],
-            "font-family": "arial,helvetica",
-            "font-size":16,
-            "margin-bottom":"10px",
+            "label": "Prevent updates",
+            "style": {
+                "color": colors['text'],
+                "font-family": "arial,helvetica",
+                "font-size":16,
+                "margin-bottom":"10px",
             }
         },
         labelPosition="bottom", className=".toggle-switch")
@@ -121,10 +123,10 @@ def update_plot(n_clicks, figure, hold):
     for line in figure['data']:
         if line["name"] == 'Coherent Beam':
             beam = upack_numpy_array(
-                client.get("filterbank-directory-monitor:coherent:bandpass"))
+                client.get("{}:coherent:bandpass".format(NAMESPACE)))
         elif line["name"] == 'Incoherent Beam':
             beam = upack_numpy_array(
-                client.get("filterbank-directory-monitor:incoherent:bandpass"))
+                client.get("{}:incoherent:bandpass".format(NAMESPACE)))
         else:
             print("Unknown data set: '{}'".fomat(line["name"]))
         line["x"] = beam["frequency"]/1e6
@@ -133,11 +135,11 @@ def update_plot(n_clicks, figure, hold):
     # I would like to update the figure title
     # here but it seems to be bugged out
     dir_label = "Current directory:    {}".format(
-        client.get("filterbank-directory-monitor:directory").decode())
+        client.get("{}:directory".format(NAMESPACE)).decode())
     cb_file = "CB file:    {}".format(
-        client.get("filterbank-directory-monitor:coherent:file").decode())
-    ib_file = "CB file:    {}".format(
-        client.get("filterbank-directory-monitor:incoherent:file").decode())
+        client.get("{}:coherent:file".format(NAMESPACE)).decode())
+    ib_file = "IB file:    {}".format(
+        client.get("{}:incoherent:file".format(NAMESPACE)).decode())
     return figure, dir_label, cb_file, ib_file
 
 
