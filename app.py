@@ -171,7 +171,7 @@ def update_plot(n_intervals, stat_selection, figure, hold):
                 client.get("{}:incoherent:bandpass".format(NAMESPACE)))
         else:
             print("Unknown data set: '{}'".fomat(line["name"]))
-        line["x"] = beam["frequency"]/1e6
+        line["x"] = beam["frequency"]
         line["y"] = beam[stat_selection]
     figure["layout"]["uirevision"] = True
     figure["layout"]["yaxis"]["title"] = stat_selection.capitalize()
@@ -187,4 +187,4 @@ def update_plot(n_intervals, stat_selection, figure, hold):
 
 
 if __name__ == '__main__':
-    app.run_server(host="0.0.0.0", debug=True)
+    app.run_server(host="0.0.0.0", debug=False)
