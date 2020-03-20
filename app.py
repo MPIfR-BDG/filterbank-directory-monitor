@@ -25,25 +25,31 @@ colors = {
     'text': '#7FDBFF'
 }
 
+h4_style = {
+        'color': '#CCCCCC',
+        'margin-bottom': "0px",
+        'margin-left': "10px",
+        'padding-top': "0px"
+        }
+
+h4_style_top = {
+        'color': '#CCCCCC',
+        'margin-bottom': "0px",
+        'margin-left': "10px",
+        'padding-top': "0px"
+        }
+
+text_style = {
+    "color": colors['text'],
+    "font-family": "arial,helvetica",
+    "font-size": 16,
+    "margin-bottom": "0px"
+    }
+
 app.layout = html.Div(children=[
-    html.H4(id='directory-label', children="Current directory: ", style= {
-        'color': '#CCCCCC',
-        'margin-bottom': "0px",
-        'margin-left': "10px",
-        'padding-top': "10px"
-        }),
-    html.H4(id='cb-file-label', children="CB file: ", style= {
-        'color': '#CCCCCC',
-        'margin-bottom': "0px",
-        'margin-left': "10px",
-        'padding-top': "0px"
-        }),
-    html.H4(id='ib-file-label', children="IB file: ", style= {
-        'color': '#CCCCCC',
-        'margin-bottom': "0px",
-        'margin-left': "10px",
-        'padding-top': "0px"
-        }),
+    html.H4(id='directory-label', children="Current directory: ", style=h4_style_top),
+    html.H4(id='cb-file-label', children="CB file: ", style=h4_style),
+    html.H4(id='ib-file-label', children="IB file: ", style=h4_style),
     dcc.Graph(
         id='bandpass-graph',
         figure={
@@ -57,7 +63,7 @@ app.layout = html.Div(children=[
                     'title': 'Frequency (MHz)'
                 },
                 'yaxis': {
-                    'title': 'Selected statistic'
+                    'title': 'Statistic'
                 },
                 'transition': {
                     'duration': 500,
@@ -89,14 +95,9 @@ app.layout = html.Div(children=[
                 id='hold-toggle', value=False, size=50,
                 label={
                     "label": "Prevent updates",
-                    "style": {
-                        "color": colors['text'],
-                        "font-family": "arial,helvetica",
-                        "font-size":16,
-                        "margin-bottom":"10px"
-                    }
+                    "style": text_style
                 },
-                labelPosition="bottom",
+                labelPosition="top",
                 className=".toggle-switch")
             ],
             style={
@@ -115,14 +116,10 @@ app.layout = html.Div(children=[
                         {'label': 'Mean', 'value': 'mean'},
                         {'label': 'Standard deviation', 'value': 'std'}
                     ],
-                    value='mean'
+                    value='mean',
+                    style=text_style
                 )],
-                style={
-                    "color": colors['text'],
-                    "font-family": "arial,helvetica",
-                    "font-size":16,
-                    "margin-bottom":"10px"
-                })],
+                style=text_style)],
             style={
                 'float': 'left',
                 'left': '30px',
@@ -174,7 +171,6 @@ def update_plot(n_intervals, stat_selection, figure, hold):
         line["x"] = beam["frequency"]
         line["y"] = beam[stat_selection]
     figure["layout"]["uirevision"] = True
-    figure["layout"]["yaxis"]["title"] = stat_selection.capitalize()
     # I would like to update the figure title
     # here but it seems to be bugged out
     dir_label = "Current directory:    {}".format(
@@ -187,4 +183,4 @@ def update_plot(n_intervals, stat_selection, figure, hold):
 
 
 if __name__ == '__main__':
-    app.run_server(host="0.0.0.0", debug=False)
+    app.run_server(host="0.0.0.0", debug=True)
