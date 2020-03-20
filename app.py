@@ -57,7 +57,7 @@ app.layout = html.Div(children=[
                     'title': 'Frequency (MHz)'
                 },
                 'yaxis': {
-                    'title': 'Power (Arbitrary)'
+                    'title': 'Selected statistic'
                 },
                 'transition': {
                     'duration': 500,
@@ -82,18 +82,57 @@ app.layout = html.Div(children=[
         interval=10*1000,
         n_intervals=0
     ),
-    daq.ToggleSwitch(
-        id='hold-toggle', value=False, size=50,
-        label={
-            "label": "Prevent updates",
-            "style": {
-                "color": colors['text'],
-                "font-family": "arial,helvetica",
-                "font-size":16,
-                "margin-bottom":"10px",
-            }
-        },
-        labelPosition="bottom", className=".toggle-switch")
+    html.Div(id='controls-div', children=[
+
+        html.Div(id='toggle-div', children=[
+            daq.ToggleSwitch(
+                id='hold-toggle', value=False, size=50,
+                label={
+                    "label": "Prevent updates",
+                    "style": {
+                        "color": colors['text'],
+                        "font-family": "arial,helvetica",
+                        "font-size":16,
+                        "margin-bottom":"10px"
+                    }
+                },
+                labelPosition="bottom",
+                className=".toggle-switch")
+            ],
+            style={
+                'float': 'left',
+                'left': '30px',
+                'width': '200px',
+                'background-color': '#212124'
+            }),
+
+        html.Div(id='dropdown-div', children=[
+            html.Label([
+                "Select statistic",
+                dcc.Dropdown(
+                    id='statistic-dropdown',
+                    options=[
+                        {'label': 'Mean', 'value': 'mean'},
+                        {'label': 'Standard deviation', 'value': 'std'}
+                    ],
+                    value='mean'
+                )],
+                style={
+                    "color": colors['text'],
+                    "font-family": "arial,helvetica",
+                    "font-size":16,
+                    "margin-bottom":"10px"
+                })],
+            style={
+                'float': 'left',
+                'left': '30px',
+                'width': '200px',
+                'background-color': '#212124'
+            }),
+        ],
+        style={
+            'background-color': '#212124'
+        })
 ], style=colors)
 
 
@@ -106,7 +145,9 @@ def upack_numpy_array(packed):
     :type       packed:  { type_description }
     """
     return np.frombuffer(packed, dtype=[
-        ('frequency', 'float32', ), ('power', 'float32')])
+       ("frequency", "float32"),
+       ("mean", "float32"),
+       ("std", "float32")])
 
 
 @app.callback(
@@ -114,10 +155,11 @@ def upack_numpy_array(packed):
      Output(component_id='directory-label', component_property='children'),
      Output(component_id='cb-file-label', component_property='children'),
      Output(component_id='ib-file-label', component_property='children')],
-    [Input('interval-component', 'n_intervals')],
+    [Input('interval-component', 'n_intervals'),
+     Input('statistic-dropdown', 'value')],
     [State('bandpass-graph', 'figure'),
      State('hold-toggle', 'value')])
-def update_plot(n_clicks, figure, hold):
+def update_plot(n_intervals, stat_selection, figure, hold):
     if hold:
         raise PreventUpdate
     for line in figure['data']:
@@ -130,8 +172,9 @@ def update_plot(n_clicks, figure, hold):
         else:
             print("Unknown data set: '{}'".fomat(line["name"]))
         line["x"] = beam["frequency"]/1e6
-        line["y"] = beam["power"]
+        line["y"] = beam[stat_selection]
     figure["layout"]["uirevision"] = True
+    figure["layout"]["yaxis"]["title"] = stat_selection.capitalize()
     # I would like to update the figure title
     # here but it seems to be bugged out
     dir_label = "Current directory:    {}".format(
