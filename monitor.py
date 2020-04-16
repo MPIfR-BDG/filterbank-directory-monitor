@@ -47,10 +47,10 @@ class BandpassGenerator(Thread):
         # first find the most recent directory:
         directory = max(glob.glob("/{}/*/*/*/".format(self._root_dir)),
             key=os.path.getctime)
-        coherent_dir = sorted(glob.glob("{}/cfbf*/"))[0]
+        coherent_dir = sorted(glob.glob("{}/cfbf*/".format(directory)))[0]
         # Take the second to last file as it is guaranteed to be finished writing
         coherent_file = sorted(glob.glob("{}/*.fil".format(coherent_dir)))[-2]
-        incoherent_dir = sorted(glob.glob("{}/ifbf*/"))[0]
+        incoherent_dir = sorted(glob.glob("{}/ifbf*/".format(directory)))[0]
         # Take the second to last file as it is guaranteed to be finished writing
         incoherent_file = sorted(glob.glob("{}/*.fil".format(coherent_dir)))[-2]
         self._redis.set("filterbank-directory-monitor:directory", directory)
@@ -75,5 +75,4 @@ class BandpassGenerator(Thread):
 
 if __name__ == "__main__":
     scraper = BandpassGenerator("/beegfs/DATA/TRAPUM/")
-    scraper.start()
-    scraper.join()
+    scraper.run()
