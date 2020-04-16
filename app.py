@@ -22,7 +22,8 @@ client = redis.StrictRedis("apsuse-monitor-redis")
 
 colors = {
     'background': '#212124',  # To match Grafana background
-    'text': '#7FDBFF'
+    'text': '#7FDBFF',
+    'background-color': '#212124'
 }
 
 h4_style = {
