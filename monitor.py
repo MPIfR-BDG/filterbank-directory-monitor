@@ -30,6 +30,8 @@ class BandpassGenerator(Thread):
         self.setDaemon(True)
         self._root_dir = root_dir
         self._interval = interval
+        self._coherent_file = None
+        self._incoherent_file = None
         self._redis = redis.StrictRedis("apsuse-monitor-redis")
 
     def generate_bandpass(self, fname):
@@ -54,14 +56,20 @@ class BandpassGenerator(Thread):
         # Take the second to last file as it is guaranteed to be finished writing
         incoherent_file = sorted(glob.glob("{}/*.fil".format(coherent_dir)))[-2]
         self._redis.set("filterbank-directory-monitor:directory", directory)
-        self._redis.set("filterbank-directory-monitor:coherent:bandpass",
-            self.generate_bandpass(coherent_file).tobytes())
-        self._redis.set("filterbank-directory-monitor:incoherent:bandpass",
-            self.generate_bandpass(incoherent_file).tobytes())
-        self._redis.set("filterbank-directory-monitor:coherent:file",
-            coherent_file.split("/")[-1])
-        self._redis.set("filterbank-directory-monitor:incoherent:file",
-            incoherent_file.split("/")[-1])
+
+        if coherent_file != self._coherent_file:
+            self._redis.set("filterbank-directory-monitor:coherent:bandpass",
+                self.generate_bandpass(coherent_file).tobytes())
+            self._redis.set("filterbank-directory-monitor:coherent:file",
+                coherent_file.split("/")[-1])
+            self._coherent_file = coherent_file
+
+        if incoherent_file != self._incoherent_file:
+            self._redis.set("filterbank-directory-monitor:incoherent:bandpass",
+                self.generate_bandpass(incoherent_file).tobytes())
+            self._redis.set("filterbank-directory-monitor:incoherent:file",
+                incoherent_file.split("/")[-1])
+            self._incoherent_file = incoherent_file
 
     def run(self):
         while True:
