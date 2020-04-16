@@ -54,7 +54,7 @@ class BandpassGenerator(Thread):
         coherent_file = sorted(glob.glob("{}/*.fil".format(coherent_dir)))[-2]
         incoherent_dir = sorted(glob.glob("{}/ifbf*/".format(directory)))[0]
         # Take the second to last file as it is guaranteed to be finished writing
-        incoherent_file = sorted(glob.glob("{}/*.fil".format(coherent_dir)))[-2]
+        incoherent_file = sorted(glob.glob("{}/*.fil".format(incoherent_dir)))[-2]
         self._redis.set("filterbank-directory-monitor:directory", directory)
 
         if coherent_file != self._coherent_file:
